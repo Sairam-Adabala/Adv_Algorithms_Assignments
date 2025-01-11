@@ -2,12 +2,12 @@
 #include <unordered_map>
 #include <vector>
 
-std::vector<int> findIndices(std::vector<int>& nums, int target) {
+std::vector<int> findIndices(std::vector<int>& nums, int trgt) {
     std::unordered_map<int, int> numMap;
     for (int i = 0; i < nums.size(); i++) {
-        int diff = target - nums[i];
-        if (numMap.find(diff) != numMap.end()) {
-            return {numMap[diff], i};
+        int constraint = trgt - nums[i];
+        if (numMap.find(constraint) != numMap.end()) {
+            return {numMap[constraint], i};
         }
         numMap[nums[i]] = i;
     }
@@ -15,7 +15,7 @@ std::vector<int> findIndices(std::vector<int>& nums, int target) {
 }
 
 int main() {
-    int n, target;
+    int n, trgt;
     std::cin >> n;
     if (n < 2 || n > 10000) {
         std::cerr << "Array size must be between 2 and 10,000." << std::endl;
@@ -31,13 +31,13 @@ int main() {
         }
     }
 
-    std::cin >> target;
-    if (target < -1000000000 || target > 1000000000) {
+    std::cin >> trgt;
+    if (trgt < -1000000000 || trgt > 1000000000) {
         std::cerr << "Target value must be between -10^9 and 10^9." << std::endl;
         return 1;
     }
 
-    std::vector<int> result = findIndices(nums, target);
+    std::vector<int> result = findIndices(nums, trgt);
     if (!result.empty()) {
         std::cout << result[0] << " " << result[1] << std::endl;
     } else {
