@@ -1,47 +1,94 @@
 #include <iostream>
 #include <vector>
+#include <stdexcept> // For exception handling
+
+using namespace std;
 
 class SparseMatrix {
 private:
-    int rows, cols;
-    std::vector<std::vector<int>> elements;
+    int rows, cols; // Dimensions of the matrix
+    vector<int> rowIndices; // Rows where non-zero values exist
+    vector<int> colIndices; // Columns where non-zero values exist
+    vector<int> values; // The actual non-zero values
 
 public:
-    SparseMatrix(int r, int c) : rows(r), cols(c) {}
-
-    void addElement(int row, int col, int value) {
-        if (value != 0) {
-            elements.push_back({row, col, value});
+    // Constructor to set the size of the matrix
+    SparseMatrix(int r, int c) : rows(r), cols(c) {
+        if (r <= 0 || c <= 0) {
+            throw invalid_argument("Matrix dimensions must be positive.");
         }
     }
 
-    void display() const {
-        int k = 0;
+    // Adds a non-zero element to the matrix
+    void addElement(int row, int col, int value) {
+        if (row >= rows || col >= cols || row < 0 || col < 0) {
+            throw out_of_range("Invalid position: (" + to_string(row) + ", " + to_string(col) + ")");
+        }
+        if (value != 0) {
+            rowIndices.push_back(row);
+            colIndices.push_back(col);
+            values.push_back(value);
+        }
+    }
+
+    // Prints the stored sparse matrix triples (Row, Column, Value)
+    void displaySparse() const {
+        if (values.empty()) {
+            cout << "No non-zero elements in the matrix." << endl;
+            return;
+        }
+        cout << "Sparse Matrix (Row, Column, Value):" << endl;
+        for (size_t i = 0; i < values.size(); i++) {
+            cout << "(" << rowIndices[i] << ", " << colIndices[i] << ", " << values[i] << ")" << endl;
+        }
+    }
+
+    // Prints the complete matrix with zeroes included
+    void displayFullMatrix() const {
+        cout << "Full Matrix Representation:" << endl;
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
-                if (k < elements.size() && elements[k][0] == i && elements[k][1] == j) {
-                    std::cout << elements[k][2] << " ";
-                    k++;
-                } else {
-                    std::cout << "0 ";
+                // Check if the current position has a stored value
+                bool found = false;
+                for (size_t k = 0; k < values.size(); k++) {
+                    if (rowIndices[k] == i && colIndices[k] == j) {
+                        cout << values[k] << " ";
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    cout << "0 ";
                 }
             }
-            std::cout << std::endl;
+            cout << endl;
         }
     }
 };
 
 int main() {
-    SparseMatrix matrix(4, 5);
+    try {
+        // Create a sparse matrix of size 4x5
+        SparseMatrix sparseMatrix(4, 5);
 
-    matrix.addElement(0, 2, 3);
-    matrix.addElement(0, 4, 4);
-    matrix.addElement(1, 2, 5);
-    matrix.addElement(1, 3, 7);
-    matrix.addElement(3, 1, 2);
-    matrix.addElement(3, 2, 6);
+        // Add some non-zero elements
+        sparseMatrix.addElement(0, 2, 3);
+        sparseMatrix.addElement(0, 4, 4);
+        sparseMatrix.addElement(1, 2, 5);
+        sparseMatrix.addElement(1, 3, 7);
+        sparseMatrix.addElement(3, 1, 2);
+        sparseMatrix.addElement(3, 2, 6);
 
-    matrix.display();
+        // Show sparse representation
+        sparseMatrix.displaySparse();
+
+        // Show the full matrix with zeroes included
+        sparseMatrix.displayFullMatrix();
+
+    } catch (const exception& e) {
+        // Catch any exceptions and display the error message
+        cerr << "Error: " << e.what() << endl;
+    }
 
     return 0;
 }
