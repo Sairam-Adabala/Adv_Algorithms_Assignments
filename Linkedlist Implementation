@@ -79,7 +79,7 @@ int main() {
     cout << "Linked List Representation of Sparse Matrix:" << endl;
     displayList(head);
 
-    // Release the allocated memory
+    // Release the dynamically allocated memory
     deleteList(head);
 
     return 0;
