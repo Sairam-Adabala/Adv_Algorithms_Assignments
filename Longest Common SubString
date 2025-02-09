@@ -1,0 +1,72 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <cctype>
+
+using namespace std;
+
+// Function to convert a string to lowercase for case-insensitive comparison
+string toLowercase(const string& str) {
+    string lowerStr = str;
+    transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
+    return lowerStr;
+}
+
+// Function to find the longest common substring using dynamic programming
+string findLongestCommonSubstring(const string& s1, const string& s2, vector<vector<int>>& dp) {
+    int m = s1.length(), n = s2.length();
+    int maxLength = 0, endIndex = 0;
+
+    // Initialize DP table
+    dp.assign(m + 1, vector<int>(n + 1, 0));
+
+    // Fill DP table
+    for (int i = 1; i <= m; ++i) {
+        for (int j = 1; j <= n; ++j) {
+            if (tolower(s1[i - 1]) == tolower(s2[j - 1])) { // Case-insensitive comparison
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+                if (dp[i][j] > maxLength) {
+                    maxLength = dp[i][j];
+                    endIndex = i - 1; // Store the end index of the substring in s1
+                }
+            }
+        }
+    }
+
+    // Extract the longest common substring
+    return (maxLength > 0) ? s1.substr(endIndex - maxLength + 1, maxLength) : "";
+}
+
+// Function to display the DP table
+void displayDPTable(const vector<vector<int>>& dp) {
+    cout << "\nDynamic Programming Table:\n";
+    for (const auto& row : dp) {
+        for (int cell : row) {
+            cout << cell << " ";
+        }
+        cout << endl;
+    }
+}
+
+int main() {
+    string s1, s2;
+    cout << "Enter the first string: ";
+    cin >> s1;
+    cout << "Enter the second string: ";
+    cin >> s2;
+
+    // Convert both strings to lowercase for case-insensitive comparison
+    string lowerS1 = toLowercase(s1);
+    string lowerS2 = toLowercase(s2);
+
+    vector<vector<int>> dp;
+    string longestSubstring = findLongestCommonSubstring(lowerS1, lowerS2, dp);
+
+    // Display results
+    displayDPTable(dp);
+    cout << "\nLongest Common Substring: " << longestSubstring << endl;
+    cout << "Length of Longest Common Substring: " << longestSubstring.length() << endl;
+
+    return 0;
+}
