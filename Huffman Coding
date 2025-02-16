@@ -1,0 +1,81 @@
+#include <iostream>
+#include <queue>
+#include <vector>
+#include <map>
+using namespace std;
+
+// Node structure for Huffman Tree
+struct Node {
+    char character;
+    int frequency;
+    Node* left;
+    Node* right;
+
+    Node(char c, int freq) : character(c), frequency(freq), left(nullptr), right(nullptr) {}
+};
+
+// Comparator for priority queue (Min Heap)
+struct CompareNodes {
+    bool operator()(const Node* a, const Node* b) {
+        return a->frequency > b->frequency;
+    }
+};
+
+// Function to generate Huffman codes using DFS traversal
+void generateHuffmanCodes(Node* root, string code, map<char, string>& huffmanCodes) {
+    if (!root) return;
+
+    if (root->character != '\0') { // Leaf node contains a character
+        huffmanCodes[root->character] = code;
+        return;
+    }
+
+    generateHuffmanCodes(root->left, code + "0", huffmanCodes);
+    generateHuffmanCodes(root->right, code + "1", huffmanCodes);
+}
+
+// Function to build the Huffman Tree and generate codes
+map<char, string> buildHuffmanTree(const string& input, const vector<int>& frequencies) {
+    priority_queue<Node*, vector<Node*>, CompareNodes> minHeap;
+
+    // Insert characters and their frequencies into the min heap
+    for (size_t i = 0; i < input.size(); i++) {
+        minHeap.push(new Node(input[i], frequencies[i]));
+    }
+
+    // Construct Huffman Tree
+    while (minHeap.size() > 1) {
+        Node* left = minHeap.top(); minHeap.pop();
+        Node* right = minHeap.top(); minHeap.pop();
+
+        Node* parent = new Node('\0', left->frequency + right->frequency);
+        parent->left = left;
+        parent->right = right;
+
+        minHeap.push(parent);
+    }
+
+    // Generate Huffman codes
+    Node* root = minHeap.top();
+    map<char, string> huffmanCodes;
+    generateHuffmanCodes(root, "", huffmanCodes);
+
+    return huffmanCodes;
+}
+
+int main() {
+    string input = "abcdef";
+    vector<int> frequencies = {5, 9, 12, 13, 16, 45};
+
+    // Build Huffman Tree and get Huffman Codes
+    map<char, string> huffmanCodes = buildHuffmanTree(input, frequencies);
+
+    // Display Huffman codes clearly
+    cout << "Character | Huffman Code" << endl;
+    cout << "------------------------" << endl;
+    for (const auto& pair : huffmanCodes) {
+        cout << "    " << pair.first << "    |    " << pair.second << endl;
+    }
+
+    return 0;
+}
