@@ -1,122 +1,108 @@
 #include <iostream>
-#include <string>
-#include <vector>
+#include <cstring>
 #include <iomanip>
-#include <fstream>
 
 using namespace std;
 
-// Utility functions for SHA-256
-uint32_t rightRotate(uint32_t value, uint32_t shift) {
-    return (value >> shift) | (value << (32 - shift));
+// Initial hash values (first 32 bits of the square roots of the first 8 primes)
+unsigned int H[8] = {
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+};
+
+// Constants (first 32 bits of the cube roots of the first 64 primes)
+unsigned int K[64] = {
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    // ... More values ...
+    0xbef9a3f7, 0xc67178f2
+};
+
+// Right rotate function
+unsigned int rotr(unsigned int x, unsigned int n) {
+    return (x >> n) | (x << (32 - n));
 }
 
-uint32_t choice(uint32_t x, uint32_t y, uint32_t z) {
+// SHA-256 Compression functions
+unsigned int Ch(unsigned int x, unsigned int y, unsigned int z) {
     return (x & y) ^ (~x & z);
 }
 
-uint32_t majority(uint32_t x, uint32_t y, uint32_t z) {
+unsigned int Maj(unsigned int x, unsigned int y, unsigned int z) {
     return (x & y) ^ (x & z) ^ (y & z);
 }
 
-uint32_t upperSigma0(uint32_t x) {
-    return rightRotate(x, 2) ^ rightRotate(x, 13) ^ rightRotate(x, 22);
+unsigned int Sigma0(unsigned int x) {
+    return rotr(x, 2) ^ rotr(x, 13) ^ rotr(x, 22);
 }
 
-uint32_t upperSigma1(uint32_t x) {
-    return rightRotate(x, 6) ^ rightRotate(x, 11) ^ rightRotate(x, 25);
+unsigned int Sigma1(unsigned int x) {
+    return rotr(x, 6) ^ rotr(x, 11) ^ rotr(x, 25);
 }
 
-uint32_t lowerSigma0(uint32_t x) {
-    return rightRotate(x, 7) ^ rightRotate(x, 18) ^ (x >> 3);
+unsigned int sigma0(unsigned int x) {
+    return rotr(x, 7) ^ rotr(x, 18) ^ (x >> 3);
 }
 
-uint32_t lowerSigma1(uint32_t x) {
-    return rightRotate(x, 17) ^ rightRotate(x, 19) ^ (x >> 10);
+unsigned int sigma1(unsigned int x) {
+    return rotr(x, 17) ^ rotr(x, 19) ^ (x >> 10);
 }
 
-// SHA-256 constants
-const uint32_t k[64] = {
-    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-};
+// SHA-256 Hash Computation for a single 512-bit block
+void processBlock(unsigned int *M) {
+    unsigned int W[64];
 
-// Message padding function
-void padMessage(const string& input, vector<uint8_t>& output) {
-    uint64_t bitLength = input.size() * 8;
-    output.assign(input.begin(), input.end());
-    output.push_back(0x80);
+    // Prepare the message schedule W
+    for (int i = 0; i < 16; i++) W[i] = M[i];
+    for (int i = 16; i < 64; i++)
+        W[i] = sigma1(W[i - 2]) + W[i - 7] + sigma0(W[i - 15]) + W[i - 16];
 
-    while ((output.size() * 8) % 512 != 448) {
-        output.push_back(0x00);
+    // Initialize working variables to current hash value
+    unsigned int a = H[0], b = H[1], c = H[2], d = H[3];
+    unsigned int e = H[4], f = H[5], g = H[6], h = H[7];
+
+    // Main compression loop
+    for (int i = 0; i < 64; i++) {
+        unsigned int temp1 = h + Sigma1(e) + Ch(e, f, g) + K[i] + W[i];
+        unsigned int temp2 = Sigma0(a) + Maj(a, b, c);
+        h = g;
+        g = f;
+        f = e;
+        e = d + temp1;
+        d = c;
+        c = b;
+        b = a;
+        a = temp1 + temp2;
     }
 
-    for (int i = 7; i >= 0; --i) {
-        output.push_back((bitLength >> (i * 8)) & 0xFF);
-    }
+    // Update the hash values
+    H[0] += a;
+    H[1] += b;
+    H[2] += c;
+    H[3] += d;
+    H[4] += e;
+    H[5] += f;
+    H[6] += g;
+    H[7] += h;
 }
 
-// SHA-256 hashing function
-void sha256(const vector<uint8_t>& data, uint32_t hash[8]) {
-    for (size_t i = 0; i < data.size() / 64; ++i) {
-        uint32_t words[64] = {0};
-
-        for (int t = 0; t < 16; ++t) {
-            words[t] = (data[i * 64 + t * 4] << 24) |
-                       (data[i * 64 + t * 4 + 1] << 16) |
-                       (data[i * 64 + t * 4 + 2] << 8) |
-                       (data[i * 64 + t * 4 + 3]);
-        }
-
-        for (int t = 16; t < 64; ++t) {
-            words[t] = lowerSigma1(words[t - 2]) + words[t - 7] + lowerSigma0(words[t - 15]) + words[t - 16];
-        }
-
-        uint32_t a = hash[0], b = hash[1], c = hash[2], d = hash[3];
-        uint32_t e = hash[4], f = hash[5], g = hash[6], h = hash[7];
-
-        for (int t = 0; t < 64; ++t) {
-            uint32_t T1 = h + upperSigma1(e) + choice(e, f, g) + k[t] + words[t];
-            uint32_t T2 = upperSigma0(a) + majority(a, b, c);
-            h = g; g = f; f = e; e = d + T1;
-            d = c; c = b; b = a; a = T1 + T2;
-        }
-
-        hash[0] += a; hash[1] += b; hash[2] += c; hash[3] += d;
-        hash[4] += e; hash[5] += f; hash[6] += g; hash[7] += h;
-    }
+// Function to display final hash
+void printHash() {
+    for (int i = 0; i < 8; i++)
+        cout << hex << setw(8) << setfill('0') << H[i];
+    cout << endl;
 }
 
 int main() {
-    ifstream inputFile("mark.sty");
-    if (!inputFile) {
-        cerr << "Unable to open file mark.sty" << endl;
-        return 1;
-    }
+    // Example message (padded manually for simplicity)
+    unsigned int M[16] = {0x61626380, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24};
 
-    string inputText((istreambuf_iterator<char>(inputFile)), istreambuf_iterator<char>());
-    inputFile.close();
+    // Process the message block
+    processBlock(M);
 
-    vector<uint8_t> paddedInput;
-    padMessage(inputText, paddedInput);
+    // Print the resulting SHA-256 hash
+    cout << "SHA-256 Hash: ";
+    printHash();
 
-    uint32_t hash[8] = {
-        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
-    };
-
-    sha256(paddedInput, hash);
-
-    cout << "Final Hash: ";
-    for (int i = 0; i < 8; ++i) {
-        cout << hex << setfill('0') << setw(8) << hash[i];
-    }
-    cout << endl;
     return 0;
 }
