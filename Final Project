@@ -105,7 +105,7 @@ void sha256(const vector<uint8_t>& data, uint32_t hash[8]) {
 
 int main() {
     // Open the file mark.sty for reading
-    ifstream inputFile("mark.sty");
+    ifstream inputFile("mark.txt");
     if (!inputFile) {
         cerr << "Unable to open file mark.sty" << endl;
         return 1; // Exit if file opening fails
